@@ -17,4 +17,8 @@ public @interface ModuleData {
 
     String description() default "";
 
+    String[] modules() default "";
+
+    String[] spigotPlugins() default "";
+
 }

@@ -11,9 +11,7 @@ public class ModuleAdapter {
     public ModuleAdapter(final Module module, final ModuleData moduleData) {
         this.module = module;
         this.moduleData = moduleData;
-
     }
-
 
     public Module getModule() {
         return module;

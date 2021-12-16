@@ -58,7 +58,7 @@ public class ModuleClassLoader {
                 System.out.println(className);
 
                 try {
-                   ModuleClassLoader.class.getClassLoader().loadClass(className);
+                    ModuleClassLoader.class.getClassLoader().loadClass(className);
                     //todo: load class into spigot
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
