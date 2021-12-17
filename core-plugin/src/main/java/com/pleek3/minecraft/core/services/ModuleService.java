@@ -1,58 +1,104 @@
 package com.pleek3.minecraft.core.services;
 
+import com.pleek3.minecraft.core.Bootstrap;
 import com.pleek3.minecraft.core.annotations.ModuleData;
-import com.pleek3.minecraft.core.module.model.Module;
+import com.pleek3.minecraft.core.module.ModuleClassLoader;
 import com.pleek3.minecraft.core.module.model.ModuleAdapter;
-import com.pleek3.minecraft.core.module.scanner.PluginEnvironmentScan;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.*;
+import java.util.jar.JarFile;
 
 public class ModuleService {
 
-    private final Map<String, ModuleAdapter> injectedModules;
+    private final List<ModuleAdapter> moduleAdapters;
 
     public ModuleService() {
-        this.injectedModules = new HashMap<>();
+        this.moduleAdapters = new ArrayList<>(this.loadModules());
     }
 
-    public void injectModule(final Module module, final ModuleData data) {
-        if (this.injectedModules.containsKey(data.name()))
-            return;
+    private List<ModuleAdapter> loadModules() {
+        File[] files = new File(Bootstrap.getPathService().getRessource("plugin-folder")).listFiles(pathname -> pathname.getName().endsWith(".jar"));
 
-        ModuleAdapter adapter = new ModuleAdapter(module, data);
+        if (files == null) return new ArrayList<>();
 
-        PluginEnvironmentScan scan = new PluginEnvironmentScan(adapter);
+        List<ModuleAdapter> adapters = new ArrayList<>();
 
-        if (!scan.isBootable())
-            return;
+        for (File file : files) {
+            try {
+                ModuleClassLoader loader = new ModuleClassLoader(file, ModuleService.this, getClass().getClassLoader());
 
+                ModuleAdapter module = loader.load();
+                System.out.println(module.getModuleClassLoader().getAdapter() == null);
+                adapters.add(module);
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+        }
 
-        this.injectedModules.put(data.name(), adapter);
-        System.out.println("Trying to start " + data.name() + " module");
-        module.onEnable();
-        System.out.println(data.name() + " successfully loaded!");
+        return adapters;
     }
 
-    public void subtractModule(final String name) {
-        if (!this.injectedModules.containsKey(name)) return;
-
+    public void unloadModule(String name) {
         ModuleAdapter adapter = getModulAdapter(name);
-        System.out.println("Trying to stop " + adapter.getModuleData().name() + " module");
-        adapter.getModule().onDisable();
-        System.out.println(adapter.getModuleData().name() + " successfully stopped!");
+        if (adapter == null) return;
 
-        this.injectedModules.remove(name);
+        adapter.getModuleClassLoader().unload();
+        this.moduleAdapters.remove(adapter);
+    }
+
+    public void loadModule(String name, File file) {
+        ModuleAdapter adapter = getModulAdapter(name);
+
+        if (adapter != null) return;
+        if (!isModule(file, name)) return;
+
+        try {
+            adapter = new ModuleClassLoader(file, this, getClass().getClassLoader()).load();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
+        if (adapter != null) {
+            this.moduleAdapters.add(adapter);
+            System.out.println("[Module] Module Adapter " + name + " successfully loaded!");
+        }
+    }
+
+    public boolean isModule(File file, String name) {
+        JarFile jarFile = null;
+        try {
+            jarFile = new JarFile(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (jarFile == null)
+            return false;
+        return jarFile.stream().anyMatch(entry -> {
+            try {
+                ModuleData data = Class.forName(entry.getName().replace(".class", "").replace("/", "."),
+                        false, new URLClassLoader(new URL[]{file.toURI().toURL()}, this.getClass().getClassLoader())).getAnnotation(ModuleData.class);
+                return data != null && data.name().equals(name);
+            } catch (ClassNotFoundException | MalformedURLException e) {
+                return false;
+            }
+        });
     }
 
     public ModuleAdapter getModulAdapter(final String name) {
-        return this.injectedModules.getOrDefault(name, null);
+        for (ModuleAdapter adapter : this.moduleAdapters) {
+            if (adapter.getModuleData().name().equalsIgnoreCase(name))
+                return adapter;
+        }
+        return null;
     }
 
-    public List<String> getActiveModules() {
-        return new ArrayList<>(this.injectedModules.keySet());
+    public List<ModuleAdapter> getLoadedModules() {
+        return moduleAdapters;
     }
 
 
