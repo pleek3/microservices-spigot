@@ -4,6 +4,7 @@ import com.pleek3.minecraft.core.Bootstrap;
 import com.pleek3.minecraft.core.annotations.ModuleData;
 import com.pleek3.minecraft.core.module.model.Module;
 import com.pleek3.minecraft.core.module.model.ModuleAdapter;
+import com.pleek3.minecraft.core.module.scanner.PluginEnvironmentScan;
 import com.pleek3.minecraft.core.services.ModuleService;
 
 import java.io.File;
@@ -135,8 +136,16 @@ public class ModuleClassLoader extends URLClassLoader {
 
         if (module == null) return null;
 
+        ModuleAdapter moduleAdapter = new ModuleAdapter(module, data, this);
+
+        PluginEnvironmentScan environmentScan = new PluginEnvironmentScan(moduleAdapter);
+
+        if (!environmentScan.isBootable()) {
+            return null;
+        }
+
         module.onEnable();
-        return this.adapter = new ModuleAdapter(module, data, this);
+        return this.adapter = moduleAdapter;
     }
 
     public void unload() {

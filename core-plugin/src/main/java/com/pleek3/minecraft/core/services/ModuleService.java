@@ -31,9 +31,10 @@ public class ModuleService {
         for (File file : files) {
             try {
                 ModuleClassLoader loader = new ModuleClassLoader(file, ModuleService.this, getClass().getClassLoader());
-
                 ModuleAdapter module = loader.load();
-                System.out.println(module.getModuleClassLoader().getAdapter() == null);
+
+                if (module == null) continue;
+
                 adapters.add(module);
             } catch (MalformedURLException e) {
                 e.printStackTrace();
@@ -55,7 +56,7 @@ public class ModuleService {
         ModuleAdapter adapter = getModulAdapter(name);
 
         if (adapter != null) return;
-        if (!isModule(file, name)) return;
+        if (!isModule(name, file)) return;
 
         try {
             adapter = new ModuleClassLoader(file, this, getClass().getClassLoader()).load();
@@ -69,7 +70,7 @@ public class ModuleService {
         }
     }
 
-    public boolean isModule(File file, String name) {
+    public boolean isModule(String name, File file) {
         JarFile jarFile = null;
         try {
             jarFile = new JarFile(file);
