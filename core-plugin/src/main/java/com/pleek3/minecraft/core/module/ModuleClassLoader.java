@@ -1,11 +1,11 @@
 package com.pleek3.minecraft.core.module;
 
-import com.pleek3.minecraft.core.Bootstrap;
 import com.pleek3.minecraft.core.annotations.ModuleData;
 import com.pleek3.minecraft.core.module.model.Module;
 import com.pleek3.minecraft.core.module.model.ModuleAdapter;
 import com.pleek3.minecraft.core.module.scanner.PluginEnvironmentScan;
 import com.pleek3.minecraft.core.services.ModuleService;
+import com.pleek3.minecraft.core.utils.Services;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +30,7 @@ public class ModuleClassLoader extends URLClassLoader {
             method.setAccessible(true);
             method.invoke(null);
             method.setAccessible(oldAccessible);
-            System.out.println("Set ModuleClassLoader as paralles capable");
+            // System.out.println("Set ModuleClassLoader as paralles capable");
 
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException ignored) {
         }
@@ -71,10 +71,17 @@ public class ModuleClassLoader extends URLClassLoader {
 
             String className = entry.getName().replace("/", ".").replace(".class", "");
 
+            //Logging
+            String[] splitClassName = className.split("\\.");
+            String classNameWithoutPackage = splitClassName[splitClassName.length - 1];
+
             try {
                 loadClass(className, true);
                 Class<?> clazz = Class.forName(className, false, this);
                 this.classes.put(className, clazz);
+
+                System.out.println("[Module - " + this.file.getName().replace(".jar", "") + "] Class " + classNameWithoutPackage + " was loaded");
+
                 /*
                 Map<PluginLoader, ConcurrentHashMap<String, Class<?>>> l = ModuleReflectionHelper.getJavaPluginLoaderClasses();
                 l.values().forEach(m -> {
@@ -121,11 +128,17 @@ public class ModuleClassLoader extends URLClassLoader {
             e.printStackTrace();
         }
 
-        if (moduleClass == null) return null;
+        if (moduleClass == null) {
+            System.out.println("[Module] No module class found for " + this.file.getName().replace(".class", ""));
+            return null;
+        }
 
         ModuleData data = moduleClass.getAnnotation(ModuleData.class);
 
-        if (data == null) return null;
+        if (data == null) {
+            System.out.println("[Module] Cannot find ModuleData for " + moduleClass.getName());
+            return null;
+        }
 
         Module module = null;
         try {
@@ -138,18 +151,14 @@ public class ModuleClassLoader extends URLClassLoader {
 
         ModuleAdapter moduleAdapter = new ModuleAdapter(module, data, this);
 
-        PluginEnvironmentScan environmentScan = new PluginEnvironmentScan(moduleAdapter);
-
-        if (!environmentScan.isBootable()) {
-            return null;
-        }
-
-        module.onEnable();
+        System.out.println("[Module] " + this.file.getName().replace(".jar", "") + " version " + data.version() + " successfully loaded!");
         return this.adapter = moduleAdapter;
     }
 
     public void unload() {
+        System.out.println("[Module] Module " + this.file.getName().replace(".jar", "") + " is attempted to be deactivated");
         this.classes.clear();
+        System.out.println("[Module] Module " + this.file.getName().replace(".jar", "") + " successfully deactivated");
     }
 
     public void reload() {
@@ -163,8 +172,7 @@ public class ModuleClassLoader extends URLClassLoader {
         System.out.println("[Module] The " + moduleName + " module is restarting");
 
         this.unload();
-        new Thread(() -> Bootstrap.getModuleService().loadModule(moduleName, this.file)).start();
-
+        new Thread(() -> Services.getModuleService.loadModule(moduleName, this.file)).start();
     }
 
     public ModuleService getLoaderService() {
