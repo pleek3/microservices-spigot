@@ -19,4 +19,5 @@ public class TestModule implements Module {
     public void onDisable() {
         System.out.println("Bye Bye!");
     }
+
 }

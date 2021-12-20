@@ -30,21 +30,21 @@ public class PluginEnvironmentScan {
 
         if (this.requiredModules.isEmpty() && this.requiredSpigotPlugins.isEmpty()) return;
 
-        this.requiredSpigotPlugins.forEach(requiredDependencies -> {
+       /* this.requiredSpigotPlugins.forEach(requiredDependencies -> {
             if (Bukkit.getPluginManager().getPlugin(requiredDependencies) == null) {
                 this.canBoot = false;
                 System.out.println("[Module] Module " + this.moduleAdapter.getModuleData().name() +
                         " cannot be started! Please install " + requiredDependencies + " (Plugin) to start this module.");
             }
-        });
+        });*/
 
-        this.requiredModules.forEach(requiredModules -> {
+      /*  this.requiredModules.forEach(requiredModules -> {
             if (Bootstrap.getModuleService().getModulAdapter(requiredModules) == null) {
                 this.canBoot = false;
                 System.out.println("[Module] Module " + this.moduleAdapter.getModuleData().name() +
                         " cannot be started! Please install " + requiredModules + " (Module) to start this module.");
             }
-        });
+        });*/
     }
 
     public boolean isBootable() {
