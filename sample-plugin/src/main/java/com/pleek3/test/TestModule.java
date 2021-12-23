@@ -13,6 +13,7 @@ public class TestModule implements Module {
     @Override
     public void onEnable() {
         System.out.println("Hello World!");
+        test();
     }
 
     @Override

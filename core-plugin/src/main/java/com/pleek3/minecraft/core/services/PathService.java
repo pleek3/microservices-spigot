@@ -5,6 +5,8 @@ import java.util.Map;
 
 public class PathService {
 
+    public final String pluginFolder = "C:\\Users\\Anwender\\IdeaProjects\\minecraft-core\\plugins";
+
     private final Map<String, String> paths;
 
     public PathService() {
