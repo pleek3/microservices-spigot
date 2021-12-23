@@ -1,13 +1,13 @@
 package com.pleek3.minecraft.core.services;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.pleek3.minecraft.core.Bootstrap;
 import com.pleek3.minecraft.core.annotations.ModuleData;
 import com.pleek3.minecraft.core.module.ModuleClassLoader;
-import com.pleek3.minecraft.core.utils.Synchronizer;
 import com.pleek3.minecraft.core.module.model.ModuleAdapter;
 import com.pleek3.minecraft.core.module.scanner.PluginEnvironmentScan;
 import com.pleek3.minecraft.core.utils.Services;
+import com.pleek3.minecraft.core.utils.Synchronizer;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
@@ -15,12 +15,16 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarFile;
 
 public class ModuleService {
 
+    public static final int THREAD_SLEEP_MILLIS = 500;
+    public static final int MAX_LOADING_TRIES = 20;
     private final Set<ModuleAdapter> moduleAdapters;
 
     public ModuleService() {
@@ -33,8 +37,9 @@ public class ModuleService {
      * with a delay of 5 milliseconds to implement the module.
      */
     public void loadModules() {
-        System.out.println("[Module] Search for modules in " + Services.getPathService.getRessource("plugin-folder"));
-        final File[] files = new File(Services.getPathService.getRessource("plugin-folder")).listFiles(pathname -> pathname.getName().endsWith(".jar"));
+        System.out.println("[Module] Search for modules in " + Services.getPathService.pluginFolder);
+        final File[] files = new File(Services.getPathService.pluginFolder).listFiles(pathname -> pathname.getName()
+                .endsWith(".jar"));
 
         if (files == null) {
             System.out.println("[Module] No modules could be found");
@@ -50,8 +55,11 @@ public class ModuleService {
         for (File file : files) {
             new Thread(() -> {
                 try {
-                    ModuleClassLoader loader = new ModuleClassLoader(file, ModuleService.this, getClass().getClassLoader());
-                    System.out.println("[Module] Implementation of module " + file.getName().replace(".jar", "") + " started");
+                    ModuleClassLoader loader = new ModuleClassLoader(file,
+                            ModuleService.this,
+                            getClass().getClassLoader());
+                    System.out.println("[Module] Implementation of module " + file.getName()
+                            .replace(".jar", "") + " started");
 
                     ModuleAdapter adapter;
                     int moduleLoadingTries = 0;
@@ -59,7 +67,7 @@ public class ModuleService {
                     do {
                         if (moduleLoadingTries != 0) {
                             try {
-                                Thread.sleep(500);
+                                Thread.sleep(THREAD_SLEEP_MILLIS);
                             } catch (InterruptedException ignored) {
                             }
                         }
@@ -77,7 +85,7 @@ public class ModuleService {
                             public void run() {
                                 ModuleService.this.enableModules(ModuleService.this.moduleAdapters, 0);
                             }
-                        }.runTask(null);
+                        }.runTask(Bootstrap.getInstance());
                     }
                 } catch (MalformedURLException e) {
                     e.printStackTrace();
@@ -89,7 +97,7 @@ public class ModuleService {
     private void enableModules(final Set<ModuleAdapter> moduleAdapters, int moduleLoadingTries) {
         moduleAdapters.removeIf(this::enableModule);
 
-        if (!moduleAdapters.isEmpty() && moduleLoadingTries++ < 20) {
+        if (!moduleAdapters.isEmpty() && moduleLoadingTries++ < MAX_LOADING_TRIES) {
             enableModules(moduleAdapters, moduleLoadingTries);
         } else {
             System.out.println("[Module] All modules successfully enabled!");
@@ -111,7 +119,7 @@ public class ModuleService {
         return moduleClassLoader.load();
     }
 
-    public void unloadModule(String name) {
+    public void unloadModule(final String name) {
         ModuleAdapter adapter = getModulAdapter(name);
         if (adapter == null) return;
 
@@ -119,7 +127,7 @@ public class ModuleService {
         this.moduleAdapters.remove(adapter);
     }
 
-    public void loadModule(String name, File file) {
+    public void loadModule(final String name, final File file) {
         ModuleAdapter adapter = getModulAdapter(name);
 
         if (adapter != null) return;
@@ -137,7 +145,7 @@ public class ModuleService {
         }
     }
 
-    public boolean isModule(File file) {
+    public boolean isModule(final File file) {
         JarFile jarFile = null;
         try {
             jarFile = new JarFile(file);
@@ -149,7 +157,8 @@ public class ModuleService {
         return jarFile.stream().anyMatch(entry -> {
             try {
                 ModuleData data = Class.forName(entry.getName().replace(".class", "").replace("/", "."),
-                        false, new URLClassLoader(new URL[]{file.toURI().toURL()}, this.getClass().getClassLoader())).getAnnotation(ModuleData.class);
+                                false, new URLClassLoader(new URL[]{file.toURI().toURL()}, this.getClass().getClassLoader()))
+                        .getAnnotation(ModuleData.class);
                 return data != null;
             } catch (ClassNotFoundException | MalformedURLException e) {
                 return false;
@@ -158,11 +167,10 @@ public class ModuleService {
     }
 
     public ModuleAdapter getModulAdapter(final String name) {
-        for (ModuleAdapter adapter : getLoadedModules()) {
-            if (adapter.getModuleData().name().equalsIgnoreCase(name))
-                return adapter;
-        }
-        return null;
+        return getLoadedModules().stream()
+                .filter(adapter -> adapter.getModuleData().name().equalsIgnoreCase(name))
+                .findFirst()
+                .orElse(null);
     }
 
     public ImmutableSet<ModuleAdapter> getLoadedModules() {

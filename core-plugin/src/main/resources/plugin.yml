@@ -1,0 +1,4 @@
+name: minecraft-core
+author: TeamHardcore
+version: 1.0
+main: com.pleek3.minecraft.core.Bootstrap
