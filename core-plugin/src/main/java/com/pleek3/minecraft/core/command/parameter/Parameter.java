@@ -4,10 +4,17 @@ public class Parameter {
 
     private final Class<?> classType;
     private final String parameter;
+    private final String[] tabCompleteFlags;
 
-    public Parameter(Class<?> classType, String parameter) {
+    private final String defaultValue;
+    private final boolean wildcard;
+
+    public Parameter(Class<?> classType, String parameter, String defaultValue, boolean wildcard, String[] tabCompleteFlags) {
         this.classType = classType;
         this.parameter = parameter;
+        this.defaultValue = defaultValue;
+        this.wildcard = wildcard;
+        this.tabCompleteFlags = tabCompleteFlags;
     }
 
     public Class<?> getClassType() {
@@ -16,5 +23,9 @@ public class Parameter {
 
     public String getParameter() {
         return parameter;
+    }
+
+    public String[] getTabCompleteFlags() {
+        return tabCompleteFlags;
     }
 }

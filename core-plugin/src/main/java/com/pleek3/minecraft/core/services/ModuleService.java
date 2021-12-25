@@ -108,7 +108,7 @@ public class ModuleService {
         PluginEnvironmentScan scan = new PluginEnvironmentScan(moduleAdapter);
 
         if (scan.isBootable()) {
-            moduleAdapter.getModule().onEnable();
+            moduleAdapter.getModule().onModuleStart();
             return true;
         }
 
@@ -164,6 +164,14 @@ public class ModuleService {
                 return false;
             }
         });
+    }
+
+    public ModuleAdapter getModulAdapter(final Class<?> mainClass) {
+        return this.moduleAdapters.stream()
+                .filter(adapter -> adapter.getModule().getMainClass() != null)
+                .filter(adapter -> adapter.getModule().getMainClass() == mainClass)
+                .findFirst()
+                .orElse(null);
     }
 
     public ModuleAdapter getModulAdapter(final String name) {

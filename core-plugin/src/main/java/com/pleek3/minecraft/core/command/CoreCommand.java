@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,12 +22,14 @@ public class CoreCommand extends org.bukkit.command.Command {
 
     private static final CommandMap CUSTOM_COMMAND_MAP = new CommandMap(Bukkit.getServer());
 
+    public static Object OLD_COMMAND_MAP = null;
+
     static {
         try {
             Field commandMapField = Bukkit.getServer().getClass().getDeclaredField("commandMap");
             commandMapField.setAccessible(true);
 
-            Object oldCommandMap = commandMapField.get(Bukkit.getServer());
+            OLD_COMMAND_MAP = commandMapField.get(Bukkit.getServer());
 
 
             Field knownCommandsField = SimpleCommandMap.class.getDeclaredField("knownCommands");
@@ -36,7 +39,7 @@ public class CoreCommand extends org.bukkit.command.Command {
             modifiersField.setAccessible(true);
             modifiersField.setInt(knownCommandsField, knownCommandsField.getModifiers() & ~Modifier.FINAL);
 
-            knownCommandsField.set(CUSTOM_COMMAND_MAP, knownCommandsField.get(oldCommandMap));
+            knownCommandsField.set(CUSTOM_COMMAND_MAP, knownCommandsField.get(OLD_COMMAND_MAP));
             commandMapField.set(Bukkit.getServer(), CUSTOM_COMMAND_MAP);
         } catch (Exception e) {
             e.printStackTrace();
@@ -46,13 +49,13 @@ public class CoreCommand extends org.bukkit.command.Command {
     private final CommandMeta commandMeta;
     private final ModuleAdapter module;
 
-    protected CoreCommand(ModuleAdapter module, String name, String... aliases) {
+    protected CoreCommand(ModuleAdapter module, String name) {
         super(name);
-        setAliases(Arrays.asList(aliases));
         this.commandMeta = new CommandMeta(this);
-
         this.module = module;
-
+        setAliases(Arrays.asList(Arrays.copyOfRange(this.commandMeta.getCommandAliases(),
+                1,
+                this.commandMeta.getCommandAliases().length)));
         register();
     }
 
@@ -89,11 +92,11 @@ public class CoreCommand extends org.bukkit.command.Command {
             return;
         }
 
-        String baseCommand = arguments[0];
-        SubCommandMeta subCommandMeta = this.commandMeta.getSubCommandMeta(baseCommand);
+        String baseCommandInput = arguments[0];
+        SubCommandMeta subCommandMeta = this.commandMeta.getSubCommandMeta(baseCommandInput);
 
         if (subCommandMeta == null) {
-            player.sendMessage(generateDefaultUsage(null, baseCommand));
+            player.sendMessage(generateDefaultUsage(null, baseCommandInput));
             return;
         }
 
@@ -120,10 +123,17 @@ public class CoreCommand extends org.bukkit.command.Command {
             String[] array = Arrays.copyOfRange(arguments, 1, arguments.length);
 
             if (!this.commandMeta.getSubCommandMeta(builder.toString()).execute(player, array))
-                player.sendMessage(generateDefaultUsage(subCommandMeta, baseCommand));
+                player.sendMessage(generateDefaultUsage(subCommandMeta, baseCommandInput));
             break;
 
         }
+    }
+
+    public boolean canAccess(Player player) {
+        if ("".equalsIgnoreCase(this.commandMeta.getCommandPermission()))
+            return true;
+
+        return player.hasPermission(this.commandMeta.getCommandPermission());
     }
 
     @Override
@@ -138,20 +148,20 @@ public class CoreCommand extends org.bukkit.command.Command {
     }
 
     /*
-Permission Nachricht in den Properties anpassbar machen.
-Verschiedene Placeholder verwenden:
-$prefix$ → Module Prefix
+    Permission Nachricht in den Properties anpassbar machen.
+    Verschiedene Placeholder verwenden:
+    $prefix$ → Module Prefix
  */
     private String generateDefaultPermission() {
         return "Dazu hast du keine Berechtigung!";
     }
 
     /*
-Usage Nachricht in den Properties anpassbar machen.
-Verschiedene Placeholder verwenden:
-$name$ → Command
-$param$ → Command Parameter
-$prefix$ → Module Prefix
+    Usage Nachricht in den Properties anpassbar machen.
+    Verschiedene Placeholder verwenden:
+    $name$ → Command
+    $param$ → Command ParameterInfo
+    $prefix$ → Module Prefix
  */
     private String generateDefaultUsage(SubCommandMeta subCommand, String label) {
         if (subCommand == null) {

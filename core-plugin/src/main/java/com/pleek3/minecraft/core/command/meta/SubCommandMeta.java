@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 
 public class SubCommandMeta {
 
-    //  private final String[] parameters;
     private final SubCommand subCommand;
     private final ParameterData parameterData;
 
@@ -33,7 +32,6 @@ public class SubCommandMeta {
         this.aliases = this.subCommand.command();
         this.permissionString = this.subCommand.perm();
         this.parameterString = this.subCommand.parameters();
-        //   this.parameters = this.subCommand.parameters().split(" ");
         this.defaultAlias = this.aliases[0];
 
         this.instance = instance;
@@ -89,6 +87,13 @@ public class SubCommandMeta {
             e.printStackTrace();
         }
         return true;
+    }
+
+    public boolean canAccess(Player player) {
+        if ("".equalsIgnoreCase(this.permissionString))
+            return true;
+
+        return player.hasPermission(this.permissionString);
     }
 
 }

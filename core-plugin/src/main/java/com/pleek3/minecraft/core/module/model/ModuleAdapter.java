@@ -5,17 +5,17 @@ import com.pleek3.minecraft.core.module.ModuleClassLoader;
 
 public class ModuleAdapter {
 
-    private final Module module;
+    private final JavaModule module;
     private final ModuleData moduleData;
     private final ModuleClassLoader moduleClassLoader;
 
-    public ModuleAdapter(final Module module, final ModuleData moduleData, final ModuleClassLoader moduleClassLoader) {
+    public ModuleAdapter(final JavaModule module, final ModuleData moduleData, final ModuleClassLoader moduleClassLoader) {
         this.module = module;
         this.moduleData = moduleData;
         this.moduleClassLoader = moduleClassLoader;
     }
 
-    public Module getModule() {
+    public JavaModule getModule() {
         return module;
     }
 

@@ -5,6 +5,7 @@ import com.pleek3.minecraft.core.command.cooldown.CommandExecutionCooldown;
 import com.pleek3.minecraft.core.command.parameter.type.CommandTypeParameter;
 import com.pleek3.minecraft.core.command.parameter.type.PlayerParameterType;
 import com.pleek3.minecraft.core.command.parameter.type.StringParameterType;
+import com.pleek3.minecraft.core.module.model.JavaModule;
 import com.pleek3.minecraft.core.module.model.Module;
 import com.pleek3.minecraft.core.utils.ClassUtil;
 import org.bukkit.entity.Player;
@@ -15,9 +16,7 @@ public class CommandService {
 
     private final List<CoreCommand> commands;
     private final Map<Class<?>, CommandTypeParameter<?>> commandTypeParameters;
-
     private final Map<UUID, CommandExecutionCooldown> commandExecutionCooldowns;
-
 
     public CommandService() {
         this.commands = new ArrayList<>();
@@ -30,13 +29,13 @@ public class CommandService {
     }
 
     /*
-     * Vielleicht wollen wir die registrierten Parameter mal überschreiben, d.h. keine contains Abfrage
+     * Vielleicht wollen wir die registrierten ParameterInfo mal überschreiben, d.h. keine contains Abfrage
      */
     public void registerTypeParameter(Class<?> clazz, CommandTypeParameter<?> parameter) {
         this.commandTypeParameters.put(clazz, parameter);
     }
 
-    public void loadCommands(Module module, String packageName) {
+    public void loadCommands(JavaModule module, String packageName) {
         ClassUtil.getClassesInPackage(module, packageName).stream().filter(CoreCommand.class::isAssignableFrom)
                 .forEach(aClass -> {
                     try {
@@ -48,6 +47,10 @@ public class CommandService {
 
     public CommandTypeParameter<?> getParameter(Class<?> clazz) {
         return this.commandTypeParameters.get(clazz);
+    }
+
+    public Map<Class<?>, CommandTypeParameter<?>> getCommandTypeParameters() {
+        return commandTypeParameters;
     }
 
     public List<CoreCommand> getCommands() {

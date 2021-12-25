@@ -1,11 +1,12 @@
 package com.pleek3.minecraft.core.module;
 
 import com.pleek3.minecraft.core.annotations.ModuleData;
-import com.pleek3.minecraft.core.module.model.Module;
+import com.pleek3.minecraft.core.module.model.JavaModule;
 import com.pleek3.minecraft.core.module.model.ModuleAdapter;
-import com.pleek3.minecraft.core.module.scanner.PluginEnvironmentScan;
 import com.pleek3.minecraft.core.services.ModuleService;
+import com.pleek3.minecraft.core.utils.ModuleReflectionService;
 import com.pleek3.minecraft.core.utils.Services;
+import org.bukkit.plugin.PluginLoader;
 
 import java.io.File;
 import java.io.IOException;
@@ -80,18 +81,17 @@ public class ModuleClassLoader extends URLClassLoader {
                 Class<?> clazz = Class.forName(className, false, this);
                 this.classes.put(className, clazz);
 
-                System.out.println("[Module - " + this.file.getName().replace(".jar", "") + "] Class " + classNameWithoutPackage + " was loaded");
+                System.out.println("[Module - " + this.file.getName()
+                        .replace(".jar", "") + "] Class " + classNameWithoutPackage + " was loaded");
 
-                /*
-                Map<PluginLoader, ConcurrentHashMap<String, Class<?>>> l = ModuleReflectionHelper.getJavaPluginLoaderClasses();
-                l.values().forEach(m -> {
-                    m.put(className, clazz);
-                });
-                ConcurrentHashMap<String, Class<?>> p = ModuleReflectionHelper.getPluginClassLoaderClasses();
+
+                Map<PluginLoader, ConcurrentHashMap<String, Class<?>>> l = ModuleReflectionService.getJavaPluginLoaderClasses();
+                l.values().forEach(m -> m.put(className, clazz));
+                ConcurrentHashMap<String, Class<?>> p = ModuleReflectionService.getPluginClassLoaderClasses();
                 p.put(className, clazz);
-                ModuleReflectionHelper.setPluginClassLoaderClasses(p);
-                ModuleReflectionHelper.setJavaPluginLoaderClasses(l);
-                 */
+                ModuleReflectionService.setPluginClassLoaderClasses(p);
+                ModuleReflectionService.setJavaPluginLoaderClasses(l);
+
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
@@ -118,9 +118,9 @@ public class ModuleClassLoader extends URLClassLoader {
         if (clazz == null)
             return null;
 
-        Class<? extends Module> moduleClass = null;
+        Class<? extends JavaModule> moduleClass = null;
         try {
-            moduleClass = clazz.asSubclass(Module.class);
+            moduleClass = clazz.asSubclass(JavaModule.class);
             if (findLoadedClass(moduleClass.getName()) == null) {
                 loadClass(moduleClass.getName());
             }
@@ -140,7 +140,7 @@ public class ModuleClassLoader extends URLClassLoader {
             return null;
         }
 
-        Module module = null;
+        JavaModule module = null;
         try {
             module = moduleClass.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
@@ -151,12 +151,21 @@ public class ModuleClassLoader extends URLClassLoader {
 
         ModuleAdapter moduleAdapter = new ModuleAdapter(module, data, this);
 
-        System.out.println("[Module] " + this.file.getName().replace(".jar", "") + " version " + data.version() + " successfully loaded!");
+        System.out.println("[Module] " + this.file.getName()
+                .replace(".jar", "") + " version " + data.version() + " successfully loaded!");
+
+        try {
+            jar.close();
+        } catch (IOException e) {
+            System.out.println("[Module] " + this.file.getName()
+                    .replace(".jar", "") + " cannot close: " + e.getMessage());
+        }
         return this.adapter = moduleAdapter;
     }
 
     public void unload() {
-        System.out.println("[Module] Module " + this.file.getName().replace(".jar", "") + " is attempted to be deactivated");
+        System.out.println("[Module] Module " + this.file.getName()
+                .replace(".jar", "") + " is attempted to be deactivated");
         this.classes.clear();
         System.out.println("[Module] Module " + this.file.getName().replace(".jar", "") + " successfully deactivated");
     }
