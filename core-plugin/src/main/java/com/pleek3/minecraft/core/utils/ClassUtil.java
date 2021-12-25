@@ -3,6 +3,7 @@ package com.pleek3.minecraft.core.utils;
 
 import com.google.common.collect.ImmutableSet;
 import com.pleek3.minecraft.core.Bootstrap;
+import com.pleek3.minecraft.core.module.model.JavaModule;
 import com.pleek3.minecraft.core.module.model.Module;
 import org.bukkit.plugin.Plugin;
 
@@ -27,7 +28,7 @@ public final class ClassUtil {
      * @param packageName The package to scan classes in.
      * @return The classes in the package packageName.
      */
-    public static Collection<Class<?>> getClassesInPackage(Module module, String packageName) {
+    public static Collection<Class<?>> getClassesInPackage(JavaModule module, String packageName) {
         Collection<Class<?>> classes = new ArrayList<>();
 
         CodeSource codeSource;

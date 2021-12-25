@@ -1,6 +1,7 @@
 package com.pleek3.minecraft.core.command.meta;
 
 import com.pleek3.minecraft.core.annotations.Command;
+import com.pleek3.minecraft.core.annotations.ParameterInfo;
 import com.pleek3.minecraft.core.annotations.SubCommand;
 import com.pleek3.minecraft.core.command.CoreCommand;
 import com.pleek3.minecraft.core.command.parameter.Parameter;
@@ -18,18 +19,15 @@ public class CommandMeta {
 
     private String commandPermission;
     private String commandDescription;
-    private String[] commandNames;
+    private String[] commandAliases;
     private boolean asyncExecution;
 
     private final HashMap<String, SubCommandMeta> subCommandMeta;
-    private final HashMap<String, List<String>> aliases;
-
-    private final List<String> subCommandAliases;
+    private final HashMap<String, List<String>> activeAliases;
 
     public CommandMeta(CoreCommand parent) {
         this.parent = parent;
-        this.subCommandAliases = new ArrayList<>();
-        this.aliases = new HashMap<>();
+        this.activeAliases = new HashMap<>();
 
         this.fetchCommand();
         this.subCommandMeta = fetchSubCommands();
@@ -42,10 +40,10 @@ public class CommandMeta {
 
         this.commandPermission = command.permission();
         this.commandDescription = command.description();
-        this.commandNames = command.commands();
+        this.commandAliases = command.commands();
         this.asyncExecution = command.async();
 
-        this.defaultName = this.commandNames[0];
+        this.defaultName = this.commandAliases[0];
     }
 
     private HashMap<String, SubCommandMeta> fetchSubCommands() {
@@ -65,7 +63,21 @@ public class CommandMeta {
 
                 for (int i = 1; i < parameterTypes.length; i++) {
                     Class<?> parameter = method.getParameterTypes()[i];
-                    parameters[i - 1] = new Parameter(parameter, annotationParameterTypes[i - 1]);
+                    if (method.getParameters()[i].isAnnotationPresent(ParameterInfo.class)) {
+                        ParameterInfo parameterInfo = method.getParameters()[i].getAnnotation(ParameterInfo.class);
+                        parameters[i - 1] = new Parameter(parameter,
+                                annotationParameterTypes[i - 1],
+                                parameterInfo.defaultValue(),
+                                parameterInfo.wildcard(),
+                                parameterInfo.tabCompleteFlags());
+
+                    } else {
+                        parameters[i - 1] = new Parameter(parameter,
+                                annotationParameterTypes[i - 1],
+                                "",
+                                false,
+                                new String[]{});
+                    }
                 }
 
                 ParameterData parameterData = new ParameterData(parameters);
@@ -74,7 +86,7 @@ public class CommandMeta {
                 String defaultAlias = meta.getDefaultAlias();
 
                 tmpHashMap.put(defaultAlias, meta);
-                this.aliases.put(defaultAlias, Arrays.asList(meta.getAliases()));
+                this.activeAliases.put(defaultAlias, Arrays.asList(meta.getAliases()));
             }
 
         return tmpHashMap;
@@ -85,7 +97,7 @@ public class CommandMeta {
     }
 
     public SubCommandMeta getSubCommandMeta(String input) {
-        return this.aliases.entrySet()
+        return this.activeAliases.entrySet()
                 .stream()
                 .filter(entry -> entry.getValue().contains(input))
                 .findFirst()
@@ -105,8 +117,12 @@ public class CommandMeta {
         return commandDescription;
     }
 
-    public String[] getCommandNames() {
-        return commandNames;
+    public String[] getCommandAliases() {
+        return this.commandAliases;
+    }
+
+    public String getDefaultName() {
+        return defaultName;
     }
 
     public boolean isAsyncExecution() {

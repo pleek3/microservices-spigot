@@ -6,13 +6,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface SubCommand {
+@Target(ElementType.PARAMETER)
+public @interface ParameterInfo {
 
-    String[] command();
+    String defaultValue() default "";
 
-    String parameters();
+    boolean wildcard() default false;
 
-    String perm() default "none";
+    String[] tabCompleteFlags() default "";
 
 }
